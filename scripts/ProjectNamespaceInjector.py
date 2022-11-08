@@ -1,6 +1,6 @@
 # CREATED BY: Stewart Anderson
 # DATE: NOV 7
-# USAGE: Run 'python3 scripts/AddNameSpace.py' in terminal. Note that Python v3 or above needs to be installed on local machine.
+# USAGE: Note that Python v3 or above needs to be installed on local machine. Run script in terminal within VSCode window, with your CumulusCI project open.
 
 import glob
 import re
