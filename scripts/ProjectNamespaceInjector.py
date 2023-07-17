@@ -1,67 +1,75 @@
 # CREATED BY: Stewart Anderson
 # CREATED DATE: 07 NOVEMBER 2022
+#
 # USAGE:
 #
 # 1. Copy this file to the root of your CumulusCI Project Folder
-# 2. Right-click and run the file in Terminal. Note that you can set update_files(True) to just remove the namespace prefix from all files.
+# 2. Right-click and run the file in Terminal.
 # 3. Done
 #
 
-# CREATED BY: Stewart Anderson
-# DATE: NOV 7
-# USAGE: Run 'python3 scripts/AddNameSpace.py' in terminal. Note that Python v3 or above needs to be installed on local machine.
-
 import glob
 import re
-from os.path import exists
-from typing import Optional
+import fileinput
+import os
 
-NAMESPACE_REPLACEMENT = f"%%%NAMESPACED_ORG%%%"
-USE_NAMESPACE_REPLACEMENT = True
+NAMESPACE_REPLACEMENT = "%%%NAMESPACED_ORG%%%"
 SEARCH_FOLDER = "force-app/main/default"
+FILE_PATTERNS = [
+    "/aura/*.cmp",
+    "/classes/*.cls",
+    "/flows/*.flow-meta.xml",
+    "/**/*.duplicateRule-meta.xml",
+    "/pages/*.page-meta.xml",
+    "/**/*.matchingRule-meta.xml",
+    "/quickActions/*.quickAction-meta.xml",
+    "/lwc/**/*.js-meta.xml"
+]
 
-def update_files(RemoveOnlyMode: Optional[bool] = False):
-  
-  # FILES SPLIT TO ALLOW FOR EASIER READING
+def update_files(namespace_placeholder: str = None, search_directory: str = None, remove_prefix_mode: bool = False):
+    
+    """
+    Updates the custom object references throughout the files held within the search directory which is assumed to have a default Salesforce DX structure.
 
-  all_files = []
-  aura_files = glob.glob(SEARCH_FOLDER + "/aura/*.cmp", recursive=True)
-  class_files = glob.glob(SEARCH_FOLDER + "/classes/*.cls", recursive=True)
-  flow_files = glob.glob(SEARCH_FOLDER + "/flows/*.flow-meta.xml", recursive=True)
-  d_rule_files = glob.glob(SEARCH_FOLDER + "/**/*.duplicateRule-meta.xml", recursive=True)
-  vf_files = glob.glob(SEARCH_FOLDER + "/pages/*.page-meta.xml", recursive=True)
-  m_rule_files = glob.glob(SEARCH_FOLDER + "/**/*.matchingRule-meta.xml", recursive=True)
-  qa_rules = glob.glob(SEARCH_FOLDER + "/quickActions/*.quickAction-meta.xml", recursive=True)
-  lwc2_rules = glob.glob(SEARCH_FOLDER + "/lwc/**/*.js-meta.xml", recursive=True)
+    Args:
+      namespace_placeholder (str): The placeholder which will be applied to all matches.
+      search_directory (str): The relative file path from the root of the CumulusCI Project to the directory which holds the SFDX format metadata.
+      remove_prefix_mode (bool): Removes the given namespace placeholder only (if found) when True otherwise will ensure all matches have a namespace placeholder.
 
-  all_files.extend(aura_files)
-  all_files.extend(class_files)
-  all_files.extend(flow_files)
-  all_files.extend(d_rule_files)
-  all_files.extend(vf_files)
-  all_files.extend(m_rule_files)
-  all_files.extend(qa_rules)
-  all_files.extend(lwc2_rules)
+    """
 
-  # Process Each File Found
-  for file in all_files:
+    # Process initial Checks
+    if not namespace_placeholder:
+      namespace_placeholder = input(f"Please confirm the placeholder which will be replaced, the default is '{NAMESPACE_REPLACEMENT}': ") or NAMESPACE_REPLACEMENT
+    
+    if not search_directory:
+      search_directory = input(f"Please confirm the search directory path which you want to search within, the default is {SEARCH_FOLDER}: ") or SEARCH_FOLDER
 
-    # Search for all custom references within file
-    print(f"\n**Processing File**: {file}")
-    with open(file, "r") as temp_file:
-      temp_file.seek(0)
-      temp_file_string = temp_file.read()
+    remove_prefix_confirmation = input("Do you want to only remove the current prefixes (if found)? Y/n ") or 'y'
+    remove_prefix_mode = True if remove_prefix_confirmation.lower() == 'y' else False
 
-    # Update File String with new References
-    temp_file_string = temp_file_string.replace(NAMESPACE_REPLACEMENT, "")
+    if not os.path.exists(search_directory):
+      print("Error: The file path defined does not exist. Please update the file path and try again.")
+      return
+    
+    # Locate all relevant files
+    all_files = []
+    
+    for pattern in FILE_PATTERNS:
+        all_files.extend(glob.glob(SEARCH_FOLDER + pattern, recursive=True))
+    
+    # Process Each File Found
+    for file in all_files:
+        print(f"\n**Processing File**: {file}")
+        with fileinput.input(files=(file,), inplace=True, encoding="utf-8") as file_to_check:
+            for line in file_to_check:
+                updated_line = line.replace(NAMESPACE_REPLACEMENT, "")
 
-    if not RemoveOnlyMode:
-      temp_file_string = re.sub("[\w]+__c", f"{NAMESPACE_REPLACEMENT}\g<0>", temp_file_string)
-      temp_file_string = re.sub("[\w]+__r", f"{NAMESPACE_REPLACEMENT}\g<0>", temp_file_string)
-      temp_file_string = re.sub("[\w]+__s", f"{NAMESPACE_REPLACEMENT}\g<0>", temp_file_string)
+                if not remove_prefix_mode:
+                  updated_line = re.sub("[\w]+__[crs]", f"{NAMESPACE_REPLACEMENT}\g<0>", updated_line)
 
-    with open(file, "w") as tmpFile:
-          tmpFile.write(temp_file_string)
+                print(updated_line, end="")
 
 # Run Task
-update_files()
+if __name__ == "__main__":
+    update_files()
