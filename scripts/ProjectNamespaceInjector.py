@@ -27,7 +27,7 @@ FILE_PATTERNS = [
 ]
 
 def update_files(namespace_placeholder: str = None, search_directory: str = None, remove_prefix_mode: bool = False):
-    
+
     """
     Updates the custom object references throughout the files held within the search directory which is assumed to have a default Salesforce DX structure.
 
@@ -41,7 +41,7 @@ def update_files(namespace_placeholder: str = None, search_directory: str = None
     # Process initial Checks
     if not namespace_placeholder:
       namespace_placeholder = input(f"Please confirm the placeholder which will be replaced, the default is '{NAMESPACE_REPLACEMENT}': ") or NAMESPACE_REPLACEMENT
-    
+
     if not search_directory:
       search_directory = input(f"Please confirm the search directory path which you want to search within, the default is {SEARCH_FOLDER}: ") or SEARCH_FOLDER
 
@@ -51,13 +51,13 @@ def update_files(namespace_placeholder: str = None, search_directory: str = None
     if not os.path.exists(search_directory):
       print("Error: The file path defined does not exist. Please update the file path and try again.")
       return
-    
+
     # Locate all relevant files
     all_files = []
-    
+
     for pattern in FILE_PATTERNS:
         all_files.extend(glob.glob(SEARCH_FOLDER + pattern, recursive=True))
-    
+
     # Process Each File Found
     for file in all_files:
         print(f"\n**Processing File**: {file}")
